@@ -1,16 +1,21 @@
-FROM rocker/ml:3.6.0
+FROM rocker/binder:3.6.3
 
-ENV RSTUDIO_VERSION 1.3.959
-RUN /rocker_scripts/install_rstudio.sh
+## Declares build arguments
+ARG NB_USER
+ARG NB_UID
 
-ENV NB_USER=jovyan
+## Copies your repo files into the Docker Container
+USER root
+COPY . ${HOME}
+## Enable this to copy files from the binder subdirectory
+## to the home, overriding any existing files.
+## Useful to create a setup on binder that is different from a
+## clone of your repository
+## COPY binder ${HOME}
+RUN chown -R ${NB_USER} ${HOME}
 
-RUN /rocker_scripts/install_python.sh
-RUN /rocker_scripts/install_binder.sh
-
-CMD jupyter notebook --ip 0.0.0.0
-
+## Become normal user again
 USER ${NB_USER}
 
-WORKDIR /home/${NB_USER}
-
+## Run an install.R script, if it exists.
+RUN if [ -f install.R ]; then R --quiet -f install.R; fi
