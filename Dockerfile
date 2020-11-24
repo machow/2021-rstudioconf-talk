@@ -18,7 +18,7 @@ RUN chown -R ${NB_USER} ${HOME}
 USER ${NB_USER}
 
 # I am lazy so am just going to let reticulate handle python
-RUN r -q -e "reticulate::install_miniconda()"
+RUN r -q -e "install.packages("reticulate"); reticulate::install_miniconda()"
 
 ## Run an install.R script, if it exists.
 RUN if [ -f install.R ]; then R --quiet -f install.R; fi
