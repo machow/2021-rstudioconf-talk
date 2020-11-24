@@ -17,8 +17,8 @@ RUN chown -R ${NB_USER} ${HOME}
 ## Become normal user again
 USER ${NB_USER}
 
-RUN curl https://bootstrap.pypa.io/get-pip.py | python3 
-RUN python3 -m pip install pandas plotnine siuba
+# I am lazy so am just going to let reticulate handle python
+RUN r -q -e "reticulate::install_miniconda()"
 
 ## Run an install.R script, if it exists.
 RUN if [ -f install.R ]; then R --quiet -f install.R; fi
