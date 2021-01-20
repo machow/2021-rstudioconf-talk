@@ -9,7 +9,7 @@ classoption:
 ---
 
 ```{r}
-reticulate::use_virtualenv(path.expand("~/.virtualenvs/siuba"), required = TRUE)
+#reticulate::use_virtualenv(path.expand("~/.virtualenvs/siuba"), required = TRUE)
 reticulate::py_run_string("import matplotlib; matplotlib.use('Agg');")
 
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
