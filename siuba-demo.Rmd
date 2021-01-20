@@ -1,0 +1,227 @@
+---
+title: "5 Minutes to Siuba"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+classoption:
+  - twocolumn
+---
+
+```{r}
+reticulate::use_virtualenv(path.expand("~/.virtualenvs/siuba"), required = TRUE)
+reticulate::py_run_string("import matplotlib; matplotlib.use('Agg');")
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{python, python-setup}
+import pandas as pd
+pd.set_option('display.max_rows', 5)
+
+import matplotlib
+matplotlib.use('Agg')
+```
+
+
+
+## What is siuba? {.tabset .tabset-pills}
+
+### dplyr 
+
+```{r}
+library(dplyr)
+library(datasets)
+
+mtcars %>%
+  group_by(cyl) %>%
+  summarize(avg_hp = mean(hp))
+```
+
+### siuba
+
+```{python}
+from siuba import *
+from siuba.data import mtcars
+
+(mtcars
+  >> group_by(_.cyl)
+  >> summarize(avg_hp = _.hp.mean())
+  )
+```
+
+### pandas
+
+```{python}
+import pandas as pd
+from siuba.data import mtcars    # a pandas DataFrame
+
+
+(mtcars
+  .groupby("cyl", as_index = False)
+  .agg(avg_hp = ("hp", "mean"))
+  )
+```
+
+## {-}
+
+## Why siuba?
+
+### select columns
+
+:::::: {.columns}
+
+::: {.column width="50%"}
+
+#### siuba
+
+```{python, eval = FALSE}
+# select two columns
+select(mtcars, _.hp, _.mpg)
+
+# drop two columns
+select(mtcars, -_.hp, -_.mpg)
+
+# rename a column
+select(mtcars, _.horse_power == _.hp, _.mpg)
+
+
+
+# match column names
+select(mtcars, _.endswith("g"))
+
+
+```
+
+:::
+
+::: {.column width="50%"}
+
+#### pandas
+
+```{python, eval = FALSE}
+# select two columns
+mtcars[["hp", "mpg"]]
+
+# drop two columns
+mtcars.drop(columns = ["hp", "mpg"])
+
+# rename a column
+(mtcars[["hp", "mpg"]]
+  .rename(columns = {"hp": "horse_power"})
+  )
+
+# match column names
+mtcars.loc[:, lambda x: 
+      x.columns.str.endswith("g")
+      ]
+
+```
+
+:::
+
+::::::
+
+<br>
+
+### group by columns {.tabset .tabset-pills}
+
+The code below demeans a column in pandas, but does not work with grouped data :/.
+
+```{python, results = "hide"}
+# mutate using hp
+mtcars.eval("res = hp - hp.mean()")
+```
+
+Below shows how we could do it for grouped data.
+
+#### siuba
+
+```{python}
+(mtcars
+  >> group_by(_.cyl)
+  >> mutate(res = _.hp - _.hp.mean())
+  )
+```
+
+#### pandas
+
+```{python}
+(mtcars
+  #.groupby("cyl") here would error
+  .assign(res = lambda d: d.hp - d.groupby("cyl").hp.transform("mean"))
+  )
+
+```
+
+### {-}
+
+<br>
+
+### SQL queries {.tabset .tabset-pills}
+
+#### siuba
+
+```{python}
+# with DataFrame
+(mtcars 
+  >> group_by(_.cyl)
+  >> summarize(avg_hp = _.hp.mean())
+  )
+```
+
+
+```{python}
+# with SQL
+from siuba.data import cars_sql
+from siuba import *
+
+q = (cars_sql
+  >> group_by(_.cyl)
+  >> summarize(avg_hp = _.hp - _.hp.mean())
+  >> show_query()
+  )
+
+```
+
+#### pandas 
+
+```{python}
+# with DataFrame
+(mtcars 
+  .groupby("cyl", as_index = False)
+  .agg(avg_hp = ("hp", "mean"))
+  )
+```
+
+
+```{python, eval = FALSE}
+# with SQL
+pd.read_sql(engine, """
+  SELECT cyl, AVG(hp) as avg_hp
+  FROM mtcars
+  GROUP BY cyl
+""")
+
+```
+
+### {-}
+
+<br>
+
+### bonus ggplot
+
+```{python}
+import pandas as pd
+
+from siuba import *
+from plotnine import *     # ggplot for python
+
+baltimore_bridges = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-27/baltimore_bridges.csv")
+
+(baltimore_bridges
+  >> count(decade = (_.yr_built // 10) * 10)
+  >> ggplot(aes("decade", "n"))
+   + geom_line()
+  )
+```
